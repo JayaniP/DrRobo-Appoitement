@@ -4,7 +4,25 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>DrRobo Telehealth — Book & Teleconsultation (aiRender)</title>
-    <link rel="stylesheet" href="./styles.css?v=3" />
+
+    <!--
+      Remote backend (Node API) URL. Leave empty for same-origin (local dev
+      via `npm start`). When you deploy index.js to Render / Railway / Fly,
+      paste the public URL here so the live frontend on Amplify can call it.
+      Example: <meta name="api-base-url" content="https://drrobo-api.onrender.com" />
+    -->
+    <meta name="api-base-url" content="" />
+
+    
+      Google Apps Script email webhook URL. See email-webhook.gs in this repo
+      for 5-minute setup steps. When set, the LIVE URL (static, no backend)
+      will still send real Gmail emails by POSTing here.
+      Example:
+    <meta name="email-webhook" content="https://script.google.com/macros/s/AKfycbxm9_YgY5ScAtwP1RQgNSUAAPXWe9rqgQuh98ZIc8iRbuK5qVs4tUwBrQYyZqw3gsuk0g/exec" />
+    
+    <meta name="email-webhook" content="" />
+
+    <link rel="stylesheet" href="./styles.css?v=5" />
   </head>
   <body>
     <div id="root"></div>
@@ -16,9 +34,9 @@
 
     <!-- Load the doctor directory into browser memory before app.js runs.
          ?v=N is a cache-buster — bump it whenever mockData.js changes. -->
-    <script src="./mockData.js?v=3"></script>
+    <script src="./mockData.js?v=5"></script>
 
     <!-- App.js is also cache-busted. Bump ?v= here every time you push. -->
-    <script type="text/babel" data-type="module" src="./app.js?v=3"></script>
+    <script type="text/babel" data-type="module" src="./app.js?v=5"></script>
   </body>
 </html>

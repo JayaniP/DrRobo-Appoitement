@@ -1,0 +1,65 @@
+# Render.com deployment config — drop this into the repo and Render picks it up
+# automatically when you create a new "Web Service" from your GitHub repo.
+#
+# After deploy:
+#   1. In Render dashboard → Environment → add SMTP_USER, SMTP_PASS, and any
+#      TELEHEALTH_* / DEMO_* vars from your local .env. Do NOT commit .env.
+#   2. Copy the public URL Render gives you (e.g. https://drrobo-api.onrender.com)
+#      and paste it into <meta name="api-base-url"> in index.html.
+#   3. Push to GitHub → AWS Amplify rebuilds the static frontend → bookings
+#      on the live URL now hit the Render backend → real emails go out.
+
+services:
+  - type: web
+    name: drrobo-telehealth-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node index.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+
+      # These MUST be set manually in the Render dashboard (Settings → Environment).
+      # We list them here as "sync: false" so Render reminds you they're required
+      # but never auto-fills them from this file (which is in git).
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_SECURE
+        value: 'true'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: DrRobo Telehealth
+      - key: MAIL_FROM
+        sync: false
+
+      - key: DEMO_DOCTOR_EMAIL
+        value: ceo@iamyhealth.com
+      - key: DEMO_PATIENT_EMAIL
+        value: jayanipatel23@gmail.com
+
+      - key: TELEHEALTH_API_BASE_URL
+        value: https://airender.co:8000
+      - key: TELEHEALTH_SCHEDULE_PATH
+        value: /receive-data
+      - key: TELEHEALTH_FORCE_MOCK
+        value: 'false'
+      - key: USE_AIRENDER_FOR_JOIN
+        value: 'false'
+      - key: TELEHEALTH_ORG_NAME
+        value: IAMyHealth
+      - key: TELEHEALTH_ORG_ID
+        value: ORG1234567890
+      - key: TELEHEALTH_PLAN_ID
+        value: PLANENTP1234567890
+
+      - key: PUBLIC_MEETING_BASE_URL
+        value: https://airender.co
+      - key: PUBLIC_APP_BASE_URL
+        value: https://telehealth.drrobo.clinic

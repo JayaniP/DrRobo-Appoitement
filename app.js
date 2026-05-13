@@ -9,8 +9,68 @@ const { useState, useEffect, useMemo, useRef } = React;
 // falls back to a static doctors.json + client-side booking when there
 // is no backend (e.g. the AWS Amplify / S3 / CloudFront live URL).
 // ─────────────────────────────────────────────────────────────
+// Optional remote backend URL — set in <meta name="api-base-url"> in index.html.
+// Empty → same-origin (local Node server). Filled → calls the remote backend
+// (e.g. https://drrobo-api.onrender.com) so the static live URL can still book + send emails.
+const API_BASE = (typeof document !== 'undefined'
+    ? (document.querySelector('meta[name="api-base-url"]')?.content || '').trim().replace(/\/$/, '')
+    : '');
+
+// Optional Google Apps Script email webhook URL — set in <meta name="email-webhook">.
+// When set AND the Node backend isn't available, we POST booking details here
+// and Apps Script sends real Gmail emails from the user's own account.
+// See email-webhook.gs in this repo for setup.
+const EMAIL_WEBHOOK = (typeof document !== 'undefined'
+    ? (document.querySelector('meta[name="email-webhook"]')?.content || '').trim()
+    : '');
+
+async function sendEmailsViaWebhook(booking) {
+    if (!EMAIL_WEBHOOK) return { sent: false, reason: 'no webhook configured' };
+    const payload = {
+        doctorName: booking.doctor?.name,
+        doctorEmail: booking.doctor?.email,
+        patientName: booking.patient?.name,
+        patientEmail: booking.patient?.email,
+        slot: booking.slot,
+        date: booking.date,
+        room: booking.room || booking.appointmentId,
+        reason: booking.reason,
+        fee: booking.fee,
+        patientJoinUrl: absolutize(booking.joinUrls?.InviteeURL || booking.joinUrls?.inviteeURL || ''),
+        doctorJoinUrl:  absolutize(booking.joinUrls?.hostURL || ''),
+        aiRenderInviteeUrl: booking.urls?.InviteeURL || booking.urls?.inviteeURL || '',
+        aiRenderHostUrl:    booking.urls?.hostURL || '',
+    };
+    try {
+        // Apps Script web apps don't accept custom headers like Content-Type
+        // on cross-origin POSTs (CORS preflight fails), so we send as text.
+        const res = await fetch(EMAIL_WEBHOOK, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            // No Content-Type header — avoids the CORS preflight.
+        });
+        const text = await res.text();
+        let json; try { json = JSON.parse(text); } catch { json = { ok: res.ok, raw: text }; }
+        return { sent: !!json.ok, ...json };
+    } catch (err) {
+        return { sent: false, error: String(err.message || err) };
+    }
+}
+
+// Turn relative /demo-room.html?... into an absolute URL (https://your-domain/...).
+function absolutize(url) {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    return location.origin + (url.startsWith('/') ? '' : '/') + url;
+}
+
+function apiUrl(path) {
+    if (!path.startsWith('/api/')) return path;        // leave non-API paths alone
+    return API_BASE ? API_BASE + path : path;
+}
+
 async function fetchJson(url, opts) {
-    const res = await fetch(url, opts);
+    const res = await fetch(apiUrl(url), opts);
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) throw new Error('non-json');
     if (!res.ok) throw new Error('http-' + res.status);
@@ -405,14 +465,11 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
             fee: doctor.fee,
         };
 
-        // Bulletproof: api.book already has fallbacks, but if a stale cached
-        // version of app.js is in the browser, fall back inline here too so
-        // the booking never throws an alert at the user.
+        // Try the Node backend first; fall through to a client-side fake
+        // booking on any failure (non-JSON, network error, stale cache).
         let res;
         try {
             res = await api.book(payload);
-            // Old cached app.js may return the SPA index.html instead of JSON;
-            // detect that and fall back to a client-side booking.
             if (!res || (!res.data && !res.ok)) throw new Error('non-json booking response');
         } catch (_e) {
             try { await getStaticDoctors(); } catch {}
@@ -421,22 +478,39 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
 
         const data = (res && res.data) || {};
         const appointmentId = data.appointmentId || data.room || ('MC-' + Date.now().toString().slice(-6));
+        const joinUrls = data.joinUrls || data.urls || buildJoinUrlsClientSide(doctor, appointmentId, slot);
+        const patient = data.patient || { name: name || 'Patient', phone: phone || '—', email: email || 'jayanipatel23@gmail.com' };
 
-        onConfirmed({
+        const booked = {
             appointmentId,
             room: data.room || appointmentId,
             urls: data.urls || {},
-            joinUrls: data.joinUrls || data.urls || buildJoinUrlsClientSide(doctor, appointmentId, slot),
+            joinUrls,
             users: data.users || {},
-            doctor,
+            doctor: { ...doctor, email: data.doctor?.email || doctor.hostEmail || 'ceo@iamyhealth.com' },
             slot,
             date,
             reason,
-            patient: data.patient || { name: name || 'Patient', phone: phone || '—', email: email || '—' },
+            patient,
+            fee: doctor.fee,
             source: (res && res.source) || 'static',
             note: data.note || '',
             emailStatus: data.emailStatus || null,
-        });
+        };
+
+        // If the backend already sent emails (Node mode), we're done.
+        // If we fell back to client-side, fire emails via the Apps Script webhook.
+        if (!booked.emailStatus || booked.emailStatus.mode === 'static') {
+            const webhookResult = await sendEmailsViaWebhook(booked);
+            booked.emailStatus = {
+                mode: webhookResult.sent ? 'apps-script' : 'static',
+                patient: { sent: !!webhookResult.sent, email: booked.patient.email },
+                doctor:  { sent: !!webhookResult.sent, email: booked.doctor.email  },
+                note: webhookResult.error || (webhookResult.sent ? '' : (EMAIL_WEBHOOK ? 'Webhook reachable but no confirmation' : 'Set <meta name="email-webhook"> in index.html to enable real emails from the live URL.')),
+            };
+        }
+
+        onConfirmed(booked);
         setBusy(false);
     };
 
