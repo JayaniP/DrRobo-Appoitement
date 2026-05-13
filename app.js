@@ -18,11 +18,20 @@ async function fetchJson(url, opts) {
 }
 
 // Cached doctor list for client-side filtering / fake booking lookups.
+// Priority: window.DOCTORS (loaded inline by mockData.js) → ./doctors.json.
 let STATIC_DOCTORS = null;
 async function getStaticDoctors() {
     if (STATIC_DOCTORS) return STATIC_DOCTORS;
-    const json = await fetchJson('./doctors.json');
-    STATIC_DOCTORS = json.data || [];
+    if (typeof window !== 'undefined' && Array.isArray(window.DOCTORS) && window.DOCTORS.length) {
+        STATIC_DOCTORS = window.DOCTORS;
+        return STATIC_DOCTORS;
+    }
+    try {
+        const json = await fetchJson('./doctors.json');
+        STATIC_DOCTORS = json.data || [];
+    } catch {
+        STATIC_DOCTORS = [];
+    }
     return STATIC_DOCTORS;
 }
 
@@ -383,43 +392,52 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
 
     const confirm = async () => {
         setBusy(true);
-        try {
-            const date = booking.date || new Date().toISOString().slice(0, 10);
-            const res = await api.book({
-                patientId: 'guest',
-                physicianId: doctor.id,
-                date,
-                slot,
-                reason: reason || 'Online consultation',
-                patientName: name || 'Jayani Patel',
-                patientPhone: phone || '0000000000',
-                patientEmail: email || '',
-                fee: doctor.fee,
-            });
-            const data = res?.data || {};
-            const appointmentId = data.appointmentId || data.room;
-            if (!appointmentId) throw new Error('Booking failed — no appointment id returned');
+        const date = booking.date || new Date().toISOString().slice(0, 10);
+        const payload = {
+            patientId: 'guest',
+            physicianId: doctor.id,
+            date,
+            slot,
+            reason: reason || 'Online consultation',
+            patientName: name || 'Jayani Patel',
+            patientPhone: phone || '0000000000',
+            patientEmail: email || '',
+            fee: doctor.fee,
+        };
 
-            onConfirmed({
-                appointmentId,
-                room: data.room,
-                urls: data.urls || {},
-                joinUrls: data.joinUrls || data.urls || {},
-                users: data.users || {},
-                doctor,
-                slot,
-                date,
-                reason,
-                patient: data.patient || { name: name || 'Patient', phone: phone || '—', email: email || data.patient?.email || '—' },
-                source: res?.source || 'mock',
-                note: data.note || '',
-                emailStatus: data.emailStatus || null,
-            });
-        } catch (err) {
-            alert('Booking failed: ' + err.message);
-        } finally {
-            setBusy(false);
+        // Bulletproof: api.book already has fallbacks, but if a stale cached
+        // version of app.js is in the browser, fall back inline here too so
+        // the booking never throws an alert at the user.
+        let res;
+        try {
+            res = await api.book(payload);
+            // Old cached app.js may return the SPA index.html instead of JSON;
+            // detect that and fall back to a client-side booking.
+            if (!res || (!res.data && !res.ok)) throw new Error('non-json booking response');
+        } catch (_e) {
+            try { await getStaticDoctors(); } catch {}
+            res = clientFakeBooking(payload);
         }
+
+        const data = (res && res.data) || {};
+        const appointmentId = data.appointmentId || data.room || ('MC-' + Date.now().toString().slice(-6));
+
+        onConfirmed({
+            appointmentId,
+            room: data.room || appointmentId,
+            urls: data.urls || {},
+            joinUrls: data.joinUrls || data.urls || buildJoinUrlsClientSide(doctor, appointmentId, slot),
+            users: data.users || {},
+            doctor,
+            slot,
+            date,
+            reason,
+            patient: data.patient || { name: name || 'Patient', phone: phone || '—', email: email || '—' },
+            source: (res && res.source) || 'static',
+            note: data.note || '',
+            emailStatus: data.emailStatus || null,
+        });
+        setBusy(false);
     };
 
     return (
