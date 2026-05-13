@@ -738,18 +738,36 @@ function App() {
         requestLocation();
     }, []);
 
-    const loadDoctors = async ({ specialty, day }) => {
-        setLoading(true);
-        try {
-            const res = await api.doctors({
-                ...(specialty && specialty !== 'all' ? { specialty } : {}),
-                ...(day && day !== 'this week' ? { day } : {}),
-            });
-            const list = res?.data || [];
-            setDoctors(list);
-        } finally {
-            setLoading(false);
+  const loadDoctors = async ({ specialty, day }) => {
+    setLoading(true);
+    try {
+        // 1. Grab your local data array from memory
+        let list = window.DOCTORS || [];
+
+        // 2. Filter by specialty (matching your backend check for 'all')
+        if (specialty && specialty.toLowerCase() !== 'all') {
+        list = list.filter(doc => 
+            doc.specialty.toLowerCase() === specialty.toLowerCase()
+        );
         }
+
+        // 3. Filter by day timeline (matching your backend check for 'this week')
+        if (day && day.toLowerCase() !== 'this week') {
+        const targetDay = day.toLowerCase();
+        if (targetDay === 'today') {
+            list = list.filter(doc => doc.daysAhead === 0);
+        } else if (targetDay === 'tomorrow') {
+            list = list.filter(doc => doc.daysAhead === 1);
+        }
+        }
+
+        // 4. Update the React state variable directly
+        setDoctors(list);
+    } catch (err) {
+        console.error("Local data filtering error:", err);
+    } finally {
+        setLoading(false);
+    }
     };
 
     useEffect(() => { loadDoctors({ specialty, day }); }, [specialty, day]);

@@ -200,4 +200,4 @@ const DOCTORS = [
 // Simple in-memory bookings store (resets when server restarts).
 const bookings = new Map();
 
-module.exports = { DOCTORS, bookings };
+window.DOCTORS = DOCTORS;

@@ -1,22 +1,24 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DrRobo Telehealth — Book & Teleconsultation (aiRender)</title>
+    <!-- FIX: Changed to relative pathing -->
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="root"></div>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>DrRobo Telehealth — Book & Teleconsultation (aiRender)</title>
-  <link rel="stylesheet" href="/styles.css" />
-</head>
+    <!-- React + Babel via CDN: no build step required -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<body>
-  <div id="root"></div>
+    <!-- FIX: Load the mockData array into browser memory before app.js runs -->
+    <script src="./mockData.js"></script>
 
-  <!-- React + Babel via CDN: no build step required -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <script type="text/babel" data-type="module" src="/app.js"></script>
-</body>
-
+    <!-- FIX: Changed to relative pathing -->
+    <script type="text/babel" data-type="module" src="./app.js"></script>
+  </body>
 </html>
