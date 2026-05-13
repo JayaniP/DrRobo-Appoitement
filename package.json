@@ -2,10 +2,10 @@
   "name": "drrobo-telehealth",
   "version": "1.0.0",
   "description": "DrRobo Telehealth — frontend booking UI + Express gateway integrating the aiRender / IAMyHealth Schedule Meeting API for teleconsultation.",
-  "main": "server/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node server/index.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "dependencies": {
     "axios": "^1.6.7",

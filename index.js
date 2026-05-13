@@ -68,9 +68,9 @@ app.post('/api/notify', async (req, res, next) => {
 });
 
 // ── Static frontend ────────────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(__dirname));
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ── Error handler ──────────────────────────────────────────────────────────
