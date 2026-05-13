@@ -146,7 +146,7 @@ function clientFakeBooking(payload) {
                 email: payload.patientEmail || 'jayanipatel23@gmail.com',
             },
             slot: payload.slot, date: payload.date, reason: payload.reason,
-            fee: doctor.fee, urls: {}, joinUrls,
+            fee: doctor.fee, urls: joinUrls, joinUrls,
             emailStatus: {
                 mode: 'static',
                 patient: { sent: false, simulated: true, email: payload.patientEmail || 'jayanipatel23@gmail.com' },

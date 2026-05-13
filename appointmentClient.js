@@ -113,7 +113,7 @@ function buildMockUrls(room) {
 // Build *working* local demo-room URLs that the UI can actually open / iframe.
 // These point to /demo-room.html on this same server and look the part for the
 // demo while we wait for aiRender to register our credentials.
-function buildJoinUrls({ doctor, room, slot }) {
+function buildJoinUrls({ doctor, room, slot, patientName }) {
     const qs = (role) => new URLSearchParams({
         role,
         room: String(room),
@@ -123,6 +123,7 @@ function buildJoinUrls({ doctor, room, slot }) {
         avatarBg: doctor.avatarBg || '',
         avatarColor: doctor.avatarColor || '',
         slot: slot || '',
+        patient: patientName || 'Patient',
     }).toString();
     return {
         hostURL: `/demo-room.html?${qs('host')}`,
@@ -225,7 +226,7 @@ async function bookAppointment({ physicianId, date, slot, reason, patientName, p
         //     prototype always lands on a working page.
         let joinUrls = (USE_AIRENDER_FOR_JOIN && hasUsableUrls)
             ? { ...urls }
-            : buildJoinUrls({ doctor, room, slot });
+            : buildJoinUrls({ doctor, room, slot, patientName });
         if (!hasUsableUrls) {
             const sim = buildMockUrls(String(room));
             urls.hostURL = sim.hostURL;
@@ -277,7 +278,7 @@ async function bookAppointment({ physicianId, date, slot, reason, patientName, p
 async function buildMockBooking({ doctor, physicianId, date, slot, reason, patientName, patientPhone, patientEmail, fee, note }) {
     const room = `MC-${Date.now().toString().slice(-6)}`;
     const urls = buildMockUrls(room);
-    const joinUrls = buildJoinUrls({ doctor, room, slot });
+    const joinUrls = buildJoinUrls({ doctor, room, slot, patientName });
     const booking = {
         appointmentId: room,
         room,
