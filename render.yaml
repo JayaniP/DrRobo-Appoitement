@@ -40,10 +40,9 @@ services:
         sync: false
 
       - key: DEMO_DOCTOR_EMAIL
-        value: ceo@iamyhealth.com
+        value: ajpsinventor@gmail.com
       - key: DEMO_PATIENT_EMAIL
         value: jayanipatel23@gmail.com
-
       - key: TELEHEALTH_API_BASE_URL
         value: https://airender.co:8000
       - key: TELEHEALTH_SCHEDULE_PATH

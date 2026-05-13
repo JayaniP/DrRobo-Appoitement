@@ -138,7 +138,7 @@ function clientFakeBooking(payload) {
         source: 'static',
         data: {
             appointmentId: room, room,
-            doctor: { name: doctor.name, email: doctor.hostEmail || 'ceo@iamyhealth.com' },
+            doctor: { name: doctor.name, email: doctor.hostEmail || 'ajpsinventor@gmail.com' },
             patient: {
                 name: payload.patientName || 'Patient',
                 phone: payload.patientPhone || '',
@@ -149,7 +149,7 @@ function clientFakeBooking(payload) {
             emailStatus: {
                 mode: 'static',
                 patient: { sent: false, simulated: true, email: payload.patientEmail || 'jayanipatel23@gmail.com' },
-                doctor: { sent: false, simulated: true, email: doctor.hostEmail || 'ceo@iamyhealth.com' },
+                doctor: { sent: false, simulated: true, email: doctor.hostEmail || 'ajpsinventor@gmail.com' },
             },
             note: 'Live URL is hosted as static files — bookings are simulated client-side. Run `npm start` locally to actually send emails and call aiRender.',
             backend: 'static-only',
@@ -489,7 +489,7 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
             urls: data.urls || {},
             joinUrls,
             users: data.users || {},
-            doctor: { ...doctor, email: data.doctor?.email || doctor.hostEmail || 'ceo@iamyhealth.com' },
+            doctor: { ...doctor, email: data.doctor?.email || doctor.hostEmail || 'ajpsinventor@gmail.com' },
             slot,
             date,
             reason,
