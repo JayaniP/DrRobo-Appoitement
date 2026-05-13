@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>aiRender Teleconsultation — Demo Room</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e8eaed;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .top-banner {
+      background: linear-gradient(90deg, rgba(251, 188, 4, .15), rgba(251, 188, 4, .05));
+      border-bottom: 1px solid rgba(251, 188, 4, .3);
+      color: #fbbc04;
+      padding: 8px 16px;
+      font-size: 12px;
+      text-align: center;
+      letter-spacing: .02em;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, .08);
+      font-size: 14px;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    .live-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: #fbbc04;
+      animation: pulse 1.2s infinite;
+    }
+    .live-pill.connected .live-dot { background: #34a853; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+    .backend-chip {
+      margin-left: 12px;
+      font-size: 11px;
+      color: #9aa0a6;
+      padding: 3px 10px;
+      background: #1c2128;
+      border-radius: 9999px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .rec-chip {
+      margin-left: 10px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      background: rgba(197, 34, 31, .15);
+      color: #f28b82;
+      border: 1px solid rgba(197, 34, 31, .35);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .rec-chip.on { display: inline-flex; }
+    .rec-chip .rec-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #c5221f;
+      animation: pulse 1s infinite;
+    }
+
+    .meta {
+      color: #9aa0a6;
+      font-size: 13px;
+    }
+
+    .stage {
+      flex: 1;
+      background: radial-gradient(ellipse at center, #161b22 0%, #0d1117 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: relative;
+      padding: 30px;
+      overflow: hidden;
+    }
+
+    .stage-doctor {
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    .doc-avatar {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: #e1f5ee;
+      color: #085041;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+
+    .doc-name { font-size: 22px; font-weight: 600; }
+    .doc-specialty { font-size: 14px; color: #9aa0a6; margin-top: 4px; }
+    .role-badge {
+      margin-top: 14px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 12px;
+      background: rgba(26, 115, 232, .15);
+      color: #8ab4f8;
+      border: 1px solid rgba(138, 180, 248, .25);
+    }
+    .role-badge.host { background: rgba(52, 168, 83, .15); color: #6ee7a8; border-color: rgba(110, 231, 168, .25); }
+    .role-badge.guest { background: rgba(251, 188, 4, .15); color: #fbbc04; border-color: rgba(251, 188, 4, .25); }
+
+    .conn-line {
+      margin-top: 24px;
+      color: #fbbc04;
+      font-size: 13px;
+    }
+    .conn-line.connected { color: #34a853; }
+
+    /* Screen-share video covers the stage when active */
+    #screen-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: none;
+    }
+    body.sharing #screen-video { display: block; }
+    body.sharing .stage-doctor { display: none; }
+
+    /* Self preview (PIP) */
+    .pip {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 200px;
+      height: 130px;
+      background: #1c2128;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, .12);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .pip video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* mirror for self-view */
+      display: none;
+    }
+    .pip.has-video video { display: block; }
+    .pip.has-video .pip-fallback { display: none; }
+    .pip-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pip-circle {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600;
+    }
+    .pip-label { font-size: 11px; color: #9aa0a6; }
+    .pip-name {
+      position: absolute;
+      bottom: 6px;
+      left: 8px;
+      font-size: 10px;
+      color: rgba(255, 255, 255, .9);
+      background: rgba(0, 0, 0, .5);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .room-card {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      background: rgba(0, 0, 0, .55);
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #9aa0a6;
+      max-width: 340px;
+    }
+    .room-card b { color: #e8eaed; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      background: #0a0d12;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      width: 70px;
+      height: 60px;
+      border-radius: 12px;
+      background: #1c2128;
+      color: #e8eaed;
+      border: 1px solid rgba(255, 255, 255, .08);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2px;
+      font-family: inherit;
+      font-size: 18px;
+      transition: background .15s, transform .15s;
+    }
+    .controls button:hover { background: #2a313b; }
+    .controls button:active { transform: translateY(1px); }
+    .controls button span { font-size: 10px; color: #9aa0a6; margin-top: 2px; }
+    .controls button.active {
+      background: rgba(26, 115, 232, .18);
+      border-color: rgba(138, 180, 248, .35);
+    }
+    .controls button.recording {
+      background: rgba(197, 34, 31, .2);
+      border-color: rgba(197, 34, 31, .45);
+    }
+    .controls button.danger { background: #c5221f; color: #fff; }
+    .controls button.danger:hover { background: #ec433f; }
+    .controls button.danger span { color: rgba(255,255,255,.85); }
+
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1c2128;
+      color: #e8eaed;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      z-index: 10;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+
+<body>
+  <div class="top-banner">
+    🧪 DEMO ROOM — aiRender simulator. Real aiRender room loads here once credentials are registered with aiRender. Webcam, screen-share &amp; recording below are real browser features.
+  </div>
+
+  <div class="top-bar">
+    <div>
+      <span class="live-pill" id="live-pill">
+        <span class="live-dot"></span>
+        <span id="live-label">Connecting…</span>
+      </span>
+      <span class="backend-chip">🔒 E2E · aiRender Teleconsultation (simulator)</span>
+      <span class="rec-chip" id="rec-chip"><span class="rec-dot"></span>REC</span>
+    </div>
+    <span class="meta" id="meta-line">Room · …</span>
+  </div>
+
+  <div class="stage">
+    <div class="room-card">
+      <div>🔗 aiRender Schedule Meeting · room <b id="room-label">…</b></div>
+      <div style="margin-top:4px;">Role: <b id="role-label">…</b></div>
+    </div>
+
+    <video id="screen-video" autoplay playsinline muted></video>
+
+    <div class="stage-doctor">
+      <div class="doc-avatar" id="doc-avatar">DR</div>
+      <div class="doc-name" id="doc-name">Doctor</div>
+      <div class="doc-specialty" id="doc-specialty">Telehealth</div>
+      <div class="role-badge" id="role-badge">Patient (Invitee)</div>
+      <div class="conn-line" id="conn-line">⏳ Setting up secure aiRender channel…</div>
+    </div>
+
+    <div class="pip" id="pip">
+      <video id="self-video" autoplay playsinline muted></video>
+      <div class="pip-fallback" id="pip-fallback">
+        <div class="pip-circle">YOU</div>
+        <span class="pip-label">Tap Video to start</span>
+      </div>
+      <span class="pip-name">You</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btn-mute" title="Mute / unmute microphone">🎤<span>Mute</span></button>
+    <button id="btn-video" title="Turn camera on / off">📹<span>Video</span></button>
+    <button id="btn-screen" title="Share your screen">📺<span>Share screen</span></button>
+    <button id="btn-record" title="Record this call locally">⏺<span>Record</span></button>
+    <button id="btn-chat" title="Open chat">💬<span>Chat</span></button>
+    <button id="btn-rx" title="Send e-prescription">💊<span>e-Prescribe</span></button>
+    <button class="danger" id="btn-end">📵<span>End Call</span></button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const role = (params.get('role') || 'invitee').toLowerCase();
+      const room = params.get('room') || 'MC-XXXXXX';
+      const doctorName = params.get('doctor') || 'Telehealth Doctor';
+      const specialty = params.get('specialty') || 'Telehealth';
+      const initials = (params.get('initials') || doctorName.split(/\s+/).map(w => w[0]).slice(0, 2).join('') || 'DR').toUpperCase();
+      const avatarBg = params.get('avatarBg') || '#e1f5ee';
+      const avatarColor = params.get('avatarColor') || '#085041';
+      const slot = params.get('slot') || '';
+
+      // Doctor info
+      const avatar = document.getElementById('doc-avatar');
+      avatar.textContent = initials;
+      avatar.style.background = avatarBg;
+      avatar.style.color = avatarColor;
+      document.getElementById('doc-name').textContent = doctorName;
+      document.getElementById('doc-specialty').textContent = specialty;
+      document.getElementById('room-label').textContent = room;
+      document.getElementById('meta-line').textContent = `${doctorName} · ${specialty}${slot ? ' · ' + slot : ''}`;
+
+      const roleLabels = {
+        host: { txt: 'Doctor (Host)', cls: 'host' },
+        cohost: { txt: 'Doctor (Co-Host)', cls: 'host' },
+        invitee: { txt: 'Patient (Invitee)', cls: '' },
+        guest: { txt: 'Guest', cls: 'guest' },
+      };
+      const rl = roleLabels[role] || roleLabels.invitee;
+      const badge = document.getElementById('role-badge');
+      badge.textContent = rl.txt;
+      badge.className = 'role-badge ' + rl.cls;
+      document.getElementById('role-label').textContent = rl.txt;
+      document.title = `${rl.txt} · ${doctorName} · aiRender Demo`;
+
+      // Fake "connecting" → "connected"
+      setTimeout(() => {
+        document.getElementById('live-pill').classList.add('connected');
+        document.getElementById('live-label').textContent = 'Live · Connected';
+        const c = document.getElementById('conn-line');
+        c.classList.add('connected');
+        c.textContent = '✅ Connected · video & audio active';
+      }, 1200);
+
+      // ───────────────────────────────────────────────────────────
+      // Toast helper
+      const toastEl = document.getElementById('toast');
+      let toastTimer = null;
+      function toast(msg, ms = 2400) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), ms);
+      }
+
+      // ───────────────────────────────────────────────────────────
+      // Webcam + microphone (real getUserMedia)
+      const pip = document.getElementById('pip');
+      const selfVideo = document.getElementById('self-video');
+      const muteBtn = document.getElementById('btn-mute');
+      const videoBtn = document.getElementById('btn-video');
+      let userStream = null;
+      let audioOn = true;
+      let videoOn = true;
+
+      async function ensureUserStream() {
+        if (userStream) return userStream;
+        try {
+          userStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          selfVideo.srcObject = userStream;
+          pip.classList.add('has-video');
+          return userStream;
+        } catch (err) {
+          toast('Camera / mic permission denied — using fallback');
+          throw err;
+        }
+      }
+
+      muteBtn.addEventListener('click', async () => {
+        try { await ensureUserStream(); } catch { return; }
+        audioOn = !audioOn;
+        userStream.getAudioTracks().forEach(t => t.enabled = audioOn);
+        muteBtn.classList.toggle('active', !audioOn);
+        muteBtn.innerHTML = (audioOn ? '🎤' : '🔇') + '<span>' + (audioOn ? 'Mute' : 'Unmute') + '</span>';
+        toast(audioOn ? 'Microphone on' : 'Microphone muted');
+      });
+
+      videoBtn.addEventListener('click', async () => {
+        try { await ensureUserStream(); } catch { return; }
+        videoOn = !videoOn;
+        userStream.getVideoTracks().forEach(t => t.enabled = videoOn);
+        videoBtn.classList.toggle('active', !videoOn);
+        videoBtn.innerHTML = (videoOn ? '📹' : '🚫') + '<span>' + (videoOn ? 'Video' : 'Video on') + '</span>';
+        pip.classList.toggle('has-video', videoOn);
+        toast(videoOn ? 'Camera on' : 'Camera off');
+      });
+
+      // Auto-request the stream after the connecting → live transition so
+      // patients see their own video immediately.
+      setTimeout(() => { ensureUserStream().catch(() => {}); }, 1600);
+
+      // ───────────────────────────────────────────────────────────
+      // Screen share (real getDisplayMedia)
+      const screenBtn = document.getElementById('btn-screen');
+      const screenVideo = document.getElementById('screen-video');
+      let screenStream = null;
+
+      screenBtn.addEventListener('click', async () => {
+        if (screenStream) {
+          screenStream.getTracks().forEach(t => t.stop());
+          screenStream = null;
+          screenVideo.srcObject = null;
+          document.body.classList.remove('sharing');
+          screenBtn.classList.remove('active');
+          screenBtn.innerHTML = '📺<span>Share screen</span>';
+          toast('Screen sharing stopped');
+          return;
+        }
+        try {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+          screenVideo.srcObject = screenStream;
+          document.body.classList.add('sharing');
+          screenBtn.classList.add('active');
+          screenBtn.innerHTML = '🛑<span>Stop sharing</span>';
+          // If the user stops sharing via the browser native UI, react.
+          screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+            screenStream = null;
+            screenVideo.srcObject = null;
+            document.body.classList.remove('sharing');
+            screenBtn.classList.remove('active');
+            screenBtn.innerHTML = '📺<span>Share screen</span>';
+          });
+          toast('Sharing your screen');
+        } catch {
+          toast('Screen share cancelled');
+        }
+      });
+
+      // ───────────────────────────────────────────────────────────
+      // Recording (real MediaRecorder of self stream)
+      const recordBtn = document.getElementById('btn-record');
+      const recChip = document.getElementById('rec-chip');
+      let recorder = null;
+      let recChunks = [];
+
+      recordBtn.addEventListener('click', async () => {
+        if (recorder && recorder.state !== 'inactive') {
+          recorder.stop();
+          return;
+        }
+
+        let stream;
+        try {
+          // Prefer recording the screen-share if active, else the webcam.
+          stream = screenStream || (await ensureUserStream());
+        } catch {
+          toast('Cannot record without camera permission');
+          return;
+        }
+
+        // Build a combined stream: video track + audio from user stream.
+        const tracks = [];
+        stream.getVideoTracks().forEach(t => tracks.push(t));
+        if (userStream) userStream.getAudioTracks().forEach(t => tracks.push(t));
+        const combined = new MediaStream(tracks);
+
+        try {
+          recorder = new MediaRecorder(combined, { mimeType: 'video/webm' });
+        } catch {
+          toast('Recording not supported on this browser');
+          return;
+        }
+        recChunks = [];
+        recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recChunks.push(e.data); };
+        recorder.onstop = () => {
+          const blob = new Blob(recChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `drrobo-teleconsultation-${room}-${Date.now()}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          recChip.classList.remove('on');
+          recordBtn.classList.remove('recording');
+          recordBtn.innerHTML = '⏺<span>Record</span>';
+          toast('Recording saved to your downloads');
+        };
+        recorder.start(1000);
+        recChip.classList.add('on');
+        recordBtn.classList.add('recording');
+        recordBtn.innerHTML = '⏹<span>Stop rec</span>';
+        toast('Recording started — your call is being saved locally');
+      });
+
+      // ───────────────────────────────────────────────────────────
+      // Misc actions
+      document.getElementById('btn-chat').addEventListener('click', () => {
+        toast('Chat panel — wire to your messaging service in production');
+      });
+      document.getElementById('btn-rx').addEventListener('click', () => {
+        toast('e-Prescription sent to patient');
+      });
+      document.getElementById('btn-end').addEventListener('click', () => {
+        if (recorder && recorder.state !== 'inactive') recorder.stop();
+        if (userStream) userStream.getTracks().forEach(t => t.stop());
+        if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+        try { window.close(); } catch {}
+        if (window.opener) window.opener.postMessage('end-call', '*');
+        if (window.parent && window.parent !== window) window.parent.postMessage('end-call', '*');
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui;color:#9aa0a6;">Call ended. You may close this tab.</div>';
+      });
+    })();
+  </script>
+</body>
+
+</html>
