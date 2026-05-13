@@ -253,6 +253,10 @@
       const avatarColor = params.get('avatarColor') || '#085041';
       const slot = params.get('slot') || '';
       const patientNameParam = params.get('patient') || params.get('patientName') || 'Patient';
+      // Apps Script webhook URL — used as a cross-device chat broker so two
+      // devices (laptop + phone, two different cities, etc.) can chat in
+      // real time without a backend.
+      const WEBHOOK_URL = (params.get('webhook') || '').trim();
 
       // Stage shows the OTHER person (doctor sees patient, patient sees doctor).
       const stagePerson = (role === 'host' || role === 'cohost')
@@ -329,6 +333,54 @@
         pushMsg('system', stagePerson.name + ' joined the consultation.');
       }
 
+      // ── Cross-device broker (Apps Script polling) ──
+      // BroadcastChannel only spans windows on the SAME device, so we also
+      // POST messages to the Apps Script webhook and poll it for new ones.
+      // This makes patient (laptop) and doctor (phone) see each other live.
+      let lastPolledTs = 0;
+      const seenIds = new Set();
+      async function postToBroker(action, extra) {
+        if (!WEBHOOK_URL) return;
+        try {
+          await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(Object.assign({ action, room, from: myId, name: myName }, extra || {})),
+          });
+        } catch (err) { console.warn('[broker] post failed', err); }
+      }
+      async function pollBroker() {
+        if (!WEBHOOK_URL) return;
+        try {
+          const url = WEBHOOK_URL + (WEBHOOK_URL.indexOf('?') === -1 ? '?' : '&')
+            + 'action=poll&room=' + encodeURIComponent(room) + '&since=' + (lastPolledTs || 0);
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.now) lastPolledTs = data.now;
+          (data.messages || []).forEach(function (m) {
+            if (!m || !m.id || seenIds.has(m.id)) return;
+            seenIds.add(m.id);
+            if (!m.from || m.from === myId) return; // ignore self echo
+            if (m.type === 'chat') {
+              pushMsg('them', (m.name || stagePerson.name) + ': ' + m.text);
+            } else if (m.type === 'presence' || m.type === 'hello') {
+              markOtherOnline();
+            } else if (m.type === 'bye') {
+              pushMsg('system', (m.name || stagePerson.name) + ' has left the consultation.');
+              otherStatusEl.classList.remove('online');
+              otherStatusEl.textContent = stagePerson.name + ' left the room.';
+              otherOnline = false;
+            }
+          });
+        } catch (err) { /* network blips are fine */ }
+      }
+      if (WEBHOOK_URL) {
+        postToBroker('presence', {});
+        // First poll quickly so we catch existing presence; then keep polling.
+        setTimeout(pollBroker, 400);
+        setInterval(pollBroker, 2500);
+      }
+
       chan.postMessage({ type: 'hello', from: myId, name: myName });
       chan.addEventListener('message', (ev) => {
         const m = ev.data || {};
@@ -359,6 +411,7 @@
         const text = inputEl.value.trim(); if (!text) return;
         pushMsg('me', 'You: ' + text);
         chan.postMessage({ type: 'chat', from: myId, name: myName, text });
+        postToBroker('chat', { text: text });    // cross-device path
         inputEl.value = '';
       }
       sendBtn.addEventListener('click', sendChat);
@@ -485,6 +538,7 @@
       });
       document.getElementById('btn-end').addEventListener('click', () => {
         chan.postMessage({ type: 'bye', from: myId, name: myName });
+        postToBroker('bye', {});
         if (recorder && recorder.state !== 'inactive') recorder.stop();
         if (userStream) userStream.getTracks().forEach(t => t.stop());
         if (screenStream) screenStream.getTracks().forEach(t => t.stop());

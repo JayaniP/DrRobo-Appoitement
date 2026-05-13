@@ -113,16 +113,25 @@ function clientFilterDoctors(list, { specialty, day } = {}) {
 }
 
 function buildJoinUrlsClientSide(doctor, room, slot, patientName) {
-    const qs = (role) => new URLSearchParams({
-        role, room: String(room),
-        doctor: doctor.name || 'Telehealth Doctor',
-        specialty: doctor.specialty || 'Telehealth',
-        initials: doctor.initials || '',
-        avatarBg: doctor.avatarBg || '',
-        avatarColor: doctor.avatarColor || '',
-        slot: slot || '',
-        patient: patientName || 'Patient',
-    }).toString();
+    // Pass the Apps Script webhook URL through to the demo room so it can
+    // poll for chat messages from the other side (cross-device real-time).
+    const webhook = (typeof document !== 'undefined'
+        ? (document.querySelector('meta[name="email-webhook"]')?.content || '').trim()
+        : '');
+    const qs = (role) => {
+        const p = {
+            role, room: String(room),
+            doctor: doctor.name || 'Telehealth Doctor',
+            specialty: doctor.specialty || 'Telehealth',
+            initials: doctor.initials || '',
+            avatarBg: doctor.avatarBg || '',
+            avatarColor: doctor.avatarColor || '',
+            slot: slot || '',
+            patient: patientName || 'Patient',
+        };
+        if (webhook) p.webhook = webhook;
+        return new URLSearchParams(p).toString();
+    };
     return {
         hostURL: 'demo-room.html?' + qs('host'),
         coHostURL: 'demo-room.html?' + qs('cohost'),

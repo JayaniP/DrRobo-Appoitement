@@ -37,7 +37,14 @@
 
 function doPost(e) {
   try {
-    const payload = JSON.parse(e.postData.contents || '{}');
+    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    // Lightweight message broker so two devices can talk in real time without
+    // needing Firebase / Render / etc. Patient and doctor each POST their
+    // messages here and poll via GET below.
+    if (payload.action === 'chat' || payload.action === 'presence' || payload.action === 'bye') {
+      return _json(storeMessage_(payload));
+    }
+    // Default: booking email send.
     const result = sendBookingEmails_(payload);
     return _json({ ok: true, ...result });
   } catch (err) {
@@ -45,9 +52,44 @@ function doPost(e) {
   }
 }
 
-// Allow a quick GET to verify the webhook is reachable.
-function doGet() {
+// Allow GET to either verify reachability or poll for new messages.
+function doGet(e) {
+  const action = (e && e.parameter && e.parameter.action) || '';
+  if (action === 'poll') {
+    return _json(pollMessages_(e.parameter.room, parseInt(e.parameter.since || '0', 10)));
+  }
   return _json({ ok: true, service: 'DrRobo email webhook', time: new Date().toISOString() });
+}
+
+// ── Tiny in-memory chat broker, keyed by room ────────────────────────────
+function storeMessage_(p) {
+  const cache  = CacheService.getScriptCache();
+  const room   = p.room || 'default';
+  const key    = 'msgs:' + room;
+  const existing = cache.get(key);
+  const messages = existing ? JSON.parse(existing) : [];
+  const msg = {
+    id: String(Date.now()) + Math.random().toString(36).slice(2, 7),
+    ts: Date.now(),
+    type: p.type || p.action || 'chat',
+    from: p.from || 'unknown',
+    name: p.name || '',
+    text: p.text || '',
+  };
+  messages.push(msg);
+  const recent = messages.slice(-100);
+  // Cache for 1 hour — plenty for any single consultation.
+  cache.put(key, JSON.stringify(recent), 3600);
+  return { ok: true, stored: true, msg: msg };
+}
+
+function pollMessages_(room, since) {
+  const cache    = CacheService.getScriptCache();
+  const key      = 'msgs:' + (room || 'default');
+  const existing = cache.get(key);
+  const messages = existing ? JSON.parse(existing) : [];
+  const filtered = messages.filter(function (m) { return m.ts > (since || 0); });
+  return { ok: true, messages: filtered, now: Date.now() };
 }
 
 function sendBookingEmails_(p) {
