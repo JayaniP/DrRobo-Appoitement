@@ -253,6 +253,7 @@ async function bookAppointment({ physicianId, date, slot, reason, patientName, p
             joinUrls,
             users: data.users || {
                 host: { name: doctor.name, email: doctor.hostEmail || mailer.DEFAULT_DOCTOR_EMAIL },
+                coHost: [],
                 Invitee: { name: patientName || 'Guest Patient', email: patientEmail || mailer.DEFAULT_PATIENT_EMAIL },
             },
             backend: source === 'live' ? 'aiRender' : 'aiRender (simulated)',
@@ -293,6 +294,7 @@ async function buildMockBooking({ doctor, physicianId, date, slot, reason, patie
         joinUrls,
         users: {
             host: { name: doctor.name, email: doctor.hostEmail || mailer.DEFAULT_DOCTOR_EMAIL },
+            coHost: [],
             Invitee: { name: patientName || 'Guest Patient', email: patientEmail || mailer.DEFAULT_PATIENT_EMAIL },
         },
         backend: 'aiRender (simulated)',

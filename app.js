@@ -38,6 +38,8 @@ async function sendEmailsViaWebhook(booking) {
         fee: booking.fee,
         patientJoinUrl: absolutize(booking.joinUrls?.InviteeURL || booking.joinUrls?.inviteeURL || ''),
         doctorJoinUrl:  absolutize(booking.joinUrls?.hostURL || ''),
+        coHostJoinUrl:  absolutize(booking.joinUrls?.coHostURL || ''),
+        guestJoinUrl:   absolutize(booking.joinUrls?.guestURL || ''),
         aiRenderInviteeUrl: booking.urls?.InviteeURL || booking.urls?.inviteeURL || '',
         aiRenderHostUrl:    booking.urls?.hostURL || '',
     };
@@ -586,7 +588,12 @@ function BookingConfirmation({ appointment, onJoin, onDone }) {
     const patientEmail = emailStatus?.patient?.email || patient?.email || '—';
     const doctorEmail = emailStatus?.doctor?.email || '—';
     const mode = emailStatus?.mode || 'simulated';
-    const inviteeURL = joinUrls.InviteeURL || joinUrls.inviteeURL || urls.InviteeURL || '';
+    const hostURL = joinUrls.hostURL || urls.hostURL || '';
+    const coHostURL = joinUrls.coHostURL || urls.coHostURL || '';
+    const inviteeURL = joinUrls.InviteeURL || joinUrls.inviteeURL || urls.InviteeURL || urls.inviteeURL || '';
+    const guestURL = joinUrls.guestURL || urls.guestURL || '';
+    const [selectedRole, setSelectedRole] = useState(inviteeURL ? 'invitee' : (hostURL ? 'host' : (coHostURL ? 'cohost' : 'guest')));
+    const selectedUrl = selectedRole === 'host' ? hostURL : selectedRole === 'cohost' ? coHostURL : selectedRole === 'guest' ? guestURL : inviteeURL;
 
     const copy = (val) => { try { navigator.clipboard.writeText(val); } catch { } };
 
@@ -609,6 +616,26 @@ function BookingConfirmation({ appointment, onJoin, onDone }) {
                     <div><div className="label">💳 Fee</div><div className="value">₹{doctor.fee}</div></div>
                 </div>
 
+                <div className="role-picker">
+                    <div className="label">Join as</div>
+                    <div className="role-buttons">
+                        {hostURL && <button className={selectedRole === 'host' ? 'active' : ''} onClick={() => setSelectedRole('host')}>Doctor (Host)</button>}
+                        {coHostURL && <button className={selectedRole === 'cohost' ? 'active' : ''} onClick={() => setSelectedRole('cohost')}>Co-host</button>}
+                        {inviteeURL && <button className={selectedRole === 'invitee' ? 'active' : ''} onClick={() => setSelectedRole('invitee')}>Patient (Invitee)</button>}
+                        {guestURL && <button className={selectedRole === 'guest' ? 'active' : ''} onClick={() => setSelectedRole('guest')}>Guest</button>}
+                    </div>
+                </div>
+
+                {selectedUrl && (
+                    <div className="join-link-box">
+                        <div className="label">Selected join link</div>
+                        <div className="link-flex">
+                            <code>{selectedUrl}</code>
+                            <button className="copy-btn" onClick={() => copy(selectedUrl)}>copy</button>
+                        </div>
+                    </div>
+                )}
+
                 <div className="email-status">
                     <div className="email-row">
                         <span className={'email-dot ' + (emailStatus?.patient?.sent ? 'ok' : 'fail')}>
@@ -630,17 +657,18 @@ function BookingConfirmation({ appointment, onJoin, onDone }) {
                     </div>
                 </div>
 
-                {inviteeURL && (
+                {selectedUrl && (
                     <div className="join-link-box">
-                        <div className="label">Your join link</div>
+                        <div className="label">Selected join link</div>
                         <div className="link-flex">
-                            <code>{inviteeURL}</code>
-                            <button className="copy-btn" onClick={() => copy(inviteeURL)}>copy</button>
+                            <code>{selectedUrl}</code>
+                            <button className="copy-btn" onClick={() => copy(selectedUrl)}>copy</button>
                         </div>
                     </div>
                 )}
 
                 <div className="confirm-actions">
+                    <button className="btn-primary" onClick={() => onJoin(selectedRole)}>Join as {selectedRole === 'host' ? 'Doctor' : selectedRole === 'cohost' ? 'Co-host' : selectedRole === 'guest' ? 'Guest' : 'Patient'} now</button>
                     <button className="btn-secondary" onClick={onDone}>Done — I'll join from email</button>
                 </div>
             </div>
@@ -652,11 +680,12 @@ function BookingConfirmation({ appointment, onJoin, onDone }) {
 // Teleconsultation screen (aiRender / hi)
 // ─────────────────────────────────────────────────────────────
 function VideoCall({ appointment, onEnd }) {
-    const { doctor, slot, appointmentId, urls = {}, joinUrls = {}, source } = appointment;
+    const { doctor, slot, appointmentId, urls = {}, joinUrls = {}, source, joinRole } = appointment;
 
     // Display URLs (what aiRender would return) — shown in the Room panel and copied.
     const inviteeURL = urls.InviteeURL || urls.inviteeURL || '';
     const hostURL = urls.hostURL || '';
+    const coHostURL = urls.coHostURL || '';
     const guestURL = urls.guestURL || '';
 
     // Join URLs (what the iframe + Open room button actually load). In live
@@ -664,7 +693,10 @@ function VideoCall({ appointment, onEnd }) {
     // point to /demo-room.html so the demo actually opens a working room.
     const joinInvitee = joinUrls.InviteeURL || joinUrls.inviteeURL || inviteeURL;
     const joinHost = joinUrls.hostURL || hostURL;
+    const joinCoHost = joinUrls.coHostURL || coHostURL;
     const joinGuest = joinUrls.guestURL || guestURL;
+    const [activeRole, setActiveRole] = useState(joinRole || (joinInvitee ? 'invitee' : (joinHost ? 'host' : (joinCoHost ? 'cohost' : 'guest'))));
+    const activeJoin = activeRole === 'host' ? joinHost : activeRole === 'cohost' ? joinCoHost : activeRole === 'guest' ? joinGuest : joinInvitee;
 
     const [duration, setDuration] = useState(0);
     const [status, setStatus] = useState('connecting');
@@ -732,10 +764,10 @@ function VideoCall({ appointment, onEnd }) {
 
             <div className="video-main">
                 <div className="video-stage">
-                    {joinInvitee && !embedFailed ? (
+                    {activeJoin && !embedFailed ? (
                         <iframe
                             className="video-iframe"
-                            src={joinInvitee}
+                            src={activeJoin}
                             title="aiRender Teleconsultation"
                             allow="camera; microphone; fullscreen; display-capture; autoplay"
                             onError={() => setEmbedFailed(true)}
@@ -747,12 +779,12 @@ function VideoCall({ appointment, onEnd }) {
                             <div style={{ fontSize: 13, color: '#9aa0a6' }}>{doctor.specialty} · {slot}</div>
                             {status === 'connecting' && <div style={{ marginTop: 10, color: '#fbbc04', fontSize: 13 }}>⏳ Setting up secure aiRender channel…</div>}
                             <div style={{ marginTop: 14, fontSize: 12, color: '#9aa0a6', maxWidth: 360, textAlign: 'center' }}>
-                                {joinInvitee
-                                    ? 'Your teleconsultation room is ready. Tap below to join.'
+                                {activeJoin
+                                    ? `Your teleconsultation room is ready as ${activeRole === 'host' ? 'Doctor' : activeRole === 'cohost' ? 'Co-host' : activeRole === 'guest' ? 'Guest' : 'Patient'}.`
                                     : 'Generating teleconsultation room…'}
                             </div>
-                            {joinInvitee && (
-                                <a className="btn-primary" style={{ marginTop: 12, padding: '10px 22px' }} href={joinInvitee} target="_blank" rel="noopener noreferrer">📹 Open teleconsultation room</a>
+                            {activeJoin && (
+                                <a className="btn-primary" style={{ marginTop: 12, padding: '10px 22px' }} href={activeJoin} target="_blank" rel="noopener noreferrer">📹 Open teleconsultation room</a>
                             )}
                         </div>
                     )}
@@ -778,6 +810,15 @@ function VideoCall({ appointment, onEnd }) {
                                 🔗 aiRender Schedule Meeting · room <b style={{ color: '#e8eaed' }}>{appointment.room || appointmentId}</b>
                             </div>
 
+                            <div className="role-picker" style={{ marginBottom: 14 }}>
+                                <div className="label" style={{ marginBottom: 8 }}>Preview room as</div>
+                                <div className="role-buttons">
+                                    {hostURL && <button className={activeRole === 'host' ? 'active' : ''} onClick={() => setActiveRole('host')}>Host</button>}
+                                    {coHostURL && <button className={activeRole === 'cohost' ? 'active' : ''} onClick={() => setActiveRole('cohost')}>Co-host</button>}
+                                    {inviteeURL && <button className={activeRole === 'invitee' ? 'active' : ''} onClick={() => setActiveRole('invitee')}>Invitee</button>}
+                                    {guestURL && <button className={activeRole === 'guest' ? 'active' : ''} onClick={() => setActiveRole('guest')}>Guest</button>}
+                                </div>
+                            </div>
                             {inviteeURL && (
                                 <div className="link-row">
                                     <div className="link-label">Patient (Invitee)</div>
@@ -793,6 +834,15 @@ function VideoCall({ appointment, onEnd }) {
                                     <div className="link-value">
                                         <a href={hostURL} target="_blank" rel="noopener noreferrer">{hostURL}</a>
                                         <button className="copy-btn" onClick={() => copy(hostURL)}>copy</button>
+                                    </div>
+                                </div>
+                            )}
+                            {coHostURL && (
+                                <div className="link-row">
+                                    <div className="link-label">Co-host</div>
+                                    <div className="link-value">
+                                        <a href={coHostURL} target="_blank" rel="noopener noreferrer">{coHostURL}</a>
+                                        <button className="copy-btn" onClick={() => copy(coHostURL)}>copy</button>
                                     </div>
                                 </div>
                             )}
@@ -1046,7 +1096,7 @@ function App() {
         return (
             <BookingConfirmation
                 appointment={confirmed}
-                onJoin={() => { setAppointment(confirmed); setConfirmed(null); }}
+                onJoin={(role) => { setAppointment({ ...confirmed, joinRole: role || 'invitee' }); setConfirmed(null); }}
                 onDone={() => setConfirmed(null)}
             />
         );
