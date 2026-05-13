@@ -13,16 +13,13 @@
     -->
     <meta name="api-base-url" content="" />
 
-    
-      Google Apps Script email webhook URL. See email-webhook.gs in this repo
-      for 5-minute setup steps. When set, the LIVE URL (static, no backend)
-      will still send real Gmail emails by POSTing here.
-      Example:
-    <meta name="email-webhook" content="https://script.google.com/macros/s/AKfycbxm9_YgY5ScAtwP1RQgNSUAAPXWe9rqgQuh98ZIc8iRbuK5qVs4tUwBrQYyZqw3gsuk0g/exec" />
-    
-    <meta name="email-webhook" content="" />
+    <!--
+      Google Apps Script email webhook URL. See email-webhook.gs for setup.
+      Filled in below with the Web app URL Jayani deployed on 2026-05-13.
+    -->
+    <meta name="email-webhook" content="https://script.google.com/macros/s/AKfycbzNKUxIU1v6Ba21cOimbFnqKtCK1K4-atMTHykQTI0wDzzkYp5OdHcCL0HZ-Ses0ldNPw/exec" />
 
-    <link rel="stylesheet" href="./styles.css?v=5" />
+    <link rel="stylesheet" href="./styles.css?v=6" />
   </head>
   <body>
     <div id="root"></div>
@@ -32,11 +29,10 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Load the doctor directory into browser memory before app.js runs.
-         ?v=N is a cache-buster — bump it whenever mockData.js changes. -->
-    <script src="./mockData.js?v=5"></script>
+    <!-- Load the doctor directory into browser memory before app.js runs. -->
+    <script src="./mockData.js?v=6"></script>
 
-    <!-- App.js is also cache-busted. Bump ?v= here every time you push. -->
-    <script type="text/babel" data-type="module" src="./app.js?v=5"></script>
+    <!-- App.js is cache-busted. Bump ?v= here every time you push. -->
+    <script type="text/babel" data-type="module" src="./app.js?v=6"></script>
   </body>
 </html>

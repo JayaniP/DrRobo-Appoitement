@@ -41,18 +41,20 @@ async function sendEmailsViaWebhook(booking) {
         aiRenderInviteeUrl: booking.urls?.InviteeURL || booking.urls?.inviteeURL || '',
         aiRenderHostUrl:    booking.urls?.hostURL || '',
     };
+    // Google Apps Script Web Apps don't respond to CORS preflight, so we send
+    // the request in no-cors mode. The script still receives the POST and
+    // sends the emails — we just can't read the response from JS. We treat
+    // a successful network call as success and verify in the inbox.
     try {
-        // Apps Script web apps don't accept custom headers like Content-Type
-        // on cross-origin POSTs (CORS preflight fails), so we send as text.
-        const res = await fetch(EMAIL_WEBHOOK, {
+        await fetch(EMAIL_WEBHOOK, {
             method: 'POST',
+            mode: 'no-cors',
             body: JSON.stringify(payload),
-            // No Content-Type header — avoids the CORS preflight.
         });
-        const text = await res.text();
-        let json; try { json = JSON.parse(text); } catch { json = { ok: res.ok, raw: text }; }
-        return { sent: !!json.ok, ...json };
+        console.log('[email-webhook] POST sent (no-cors). Check inboxes for delivery confirmation.');
+        return { sent: true, mode: 'apps-script', note: 'Sent via Apps Script webhook (response opaque due to no-cors).' };
     } catch (err) {
+        console.error('[email-webhook] fetch failed:', err);
         return { sent: false, error: String(err.message || err) };
     }
 }
