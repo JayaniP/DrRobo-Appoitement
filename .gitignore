@@ -1,0 +1,19 @@
+# Secrets — NEVER commit. Holds Gmail SMTP password + aiRender keys.
+.env
+.env.local
+.env.*.local
+
+# Dependencies — re-installed by npm install
+node_modules/
+
+# OS / IDE noise
+.DS_Store
+.idea/
+.vscode/
+*.log
+npm-debug.log*
+
+# Build / deploy artifacts (none yet, but reserved)
+dist/
+build/
+.cache/

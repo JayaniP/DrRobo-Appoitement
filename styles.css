@@ -1144,3 +1144,8 @@ button {
 .confirm-actions .btn-primary:hover {
   filter: brightness(1.05);
 }
+
+.upstream-pill.static {
+  background: #e8f0fe;
+  color: #1557b0;
+}

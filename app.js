@@ -5,31 +5,129 @@
 const { useState, useEffect, useMemo, useRef } = React;
 
 // ─────────────────────────────────────────────────────────────
-// API helper
+// API helper — talks to /api/* when the Node backend is running, and
+// falls back to a static doctors.json + client-side booking when there
+// is no backend (e.g. the AWS Amplify / S3 / CloudFront live URL).
 // ─────────────────────────────────────────────────────────────
+async function fetchJson(url, opts) {
+    const res = await fetch(url, opts);
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) throw new Error('non-json');
+    if (!res.ok) throw new Error('http-' + res.status);
+    return await res.json();
+}
+
+// Cached doctor list for client-side filtering / fake booking lookups.
+let STATIC_DOCTORS = null;
+async function getStaticDoctors() {
+    if (STATIC_DOCTORS) return STATIC_DOCTORS;
+    const json = await fetchJson('./doctors.json');
+    STATIC_DOCTORS = json.data || [];
+    return STATIC_DOCTORS;
+}
+
+function clientFilterDoctors(list, { specialty, day } = {}) {
+    return list.filter(d => {
+        if (specialty && specialty !== 'all') {
+            const s = specialty.toLowerCase();
+            if (!d.specialty.toLowerCase().includes(s) && !s.includes(d.specialty.toLowerCase().split(' ')[0])) return false;
+        }
+        const ahead = d.daysAhead ?? 0;
+        if (day === 'today' && ahead !== 0) return false;
+        if (day === 'tomorrow' && ahead !== 1) return false;
+        return true;
+    });
+}
+
+function buildJoinUrlsClientSide(doctor, room, slot) {
+    const qs = (role) => new URLSearchParams({
+        role, room: String(room),
+        doctor: doctor.name || 'Telehealth Doctor',
+        specialty: doctor.specialty || 'Telehealth',
+        initials: doctor.initials || '',
+        avatarBg: doctor.avatarBg || '',
+        avatarColor: doctor.avatarColor || '',
+        slot: slot || '',
+    }).toString();
+    return {
+        hostURL: 'demo-room.html?' + qs('host'),
+        coHostURL: 'demo-room.html?' + qs('cohost'),
+        InviteeURL: 'demo-room.html?' + qs('invitee'),
+        guestURL: 'demo-room.html?' + qs('guest'),
+    };
+}
+
+function clientFakeBooking(payload) {
+    const list = STATIC_DOCTORS || [];
+    const doctor = list.find(d => d.id === payload.physicianId) || { id: payload.physicianId, name: 'Telehealth Doctor', specialty: 'Telehealth' };
+    const room = 'MC-' + Date.now().toString().slice(-6);
+    const joinUrls = buildJoinUrlsClientSide(doctor, room, payload.slot);
+    return {
+        ok: true,
+        source: 'static',
+        data: {
+            appointmentId: room, room,
+            doctor: { name: doctor.name, email: doctor.hostEmail || 'ceo@iamyhealth.com' },
+            patient: {
+                name: payload.patientName || 'Patient',
+                phone: payload.patientPhone || '',
+                email: payload.patientEmail || 'jayanipatel23@gmail.com',
+            },
+            slot: payload.slot, date: payload.date, reason: payload.reason,
+            fee: doctor.fee, urls: {}, joinUrls,
+            emailStatus: {
+                mode: 'static',
+                patient: { sent: false, simulated: true, email: payload.patientEmail || 'jayanipatel23@gmail.com' },
+                doctor: { sent: false, simulated: true, email: doctor.hostEmail || 'ceo@iamyhealth.com' },
+            },
+            note: 'Live URL is hosted as static files — bookings are simulated client-side. Run `npm start` locally to actually send emails and call aiRender.',
+            backend: 'static-only',
+        },
+    };
+}
+
 const api = {
-    async health() { return (await fetch('/api/health')).json(); },
+    async health() {
+        try { return await fetchJson('/api/health'); }
+        catch { return { ok: true, service: 'DrRobo Telehealth (static)', mode: 'static', upstream: { reachable: false } }; }
+    },
     async doctors(params = {}) {
         const qs = new URLSearchParams(params).toString();
-        return (await fetch('/api/doctors?' + qs)).json();
+        try { return await fetchJson('/api/doctors?' + qs); }
+        catch {
+            try {
+                const list = await getStaticDoctors();
+                return { ok: true, source: 'static', data: clientFilterDoctors(list, params) };
+            } catch { return { ok: false, data: [] }; }
+        }
     },
     async slots(id, date) {
         const qs = date ? '?date=' + date : '';
-        return (await fetch('/api/doctors/' + id + '/slots' + qs)).json();
+        try { return await fetchJson('/api/doctors/' + id + '/slots' + qs); }
+        catch {
+            const list = await getStaticDoctors().catch(() => []);
+            const doc = list.find(d => d.id === id);
+            return { ok: true, source: 'static', data: doc ? doc.slots.map((s, i) => ({ slotId: `${id}-slot-${i}`, time: s })) : [] };
+        }
     },
     async book(payload) {
-        return (await fetch('/api/bookings', {
+        try { return await fetchJson('/api/bookings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-        })).json();
+        }); }
+        catch {
+            await getStaticDoctors().catch(() => {});
+            return clientFakeBooking(payload);
+        }
     },
     async notify(payload) {
-        return (await fetch('/api/notify', {
+        try { return await fetchJson('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-        })).json();
+        }); }
+        catch { return { ok: true, source: 'static', data: { sent: false, simulated: true } }; }
     },
 };
 
@@ -123,11 +221,13 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 function Header({ upstream }) {
-    const pillClass = upstream === 'live' ? 'upstream-pill live' : upstream === 'mock' ? 'upstream-pill mock' : 'upstream-pill';
-    const label = upstream === 'live'
-        ? '● Live · aiRender connected'
-        : upstream === 'mock' ? '○ Demo mode · aiRender simulator'
-            : '○ Checking aiRender…';
+    const pillClass = upstream === 'live' ? 'upstream-pill live'
+        : upstream === 'static' ? 'upstream-pill static'
+            : upstream === 'mock' ? 'upstream-pill mock' : 'upstream-pill';
+    const label = upstream === 'live' ? '● Live · aiRender connected'
+        : upstream === 'static' ? '◐ Static demo · bookings simulated in browser'
+            : upstream === 'mock' ? '○ Demo mode · aiRender simulator'
+                : '○ Checking aiRender…';
     return (
         <header className="header">
             <div className="brand">
@@ -731,8 +831,9 @@ function App() {
         (async () => {
             try {
                 const h = await api.health();
-                setUpstream(h?.upstream?.reachable ? 'live' : 'mock');
-            } catch { setUpstream('mock'); }
+                if (h?.mode === 'static') setUpstream('static');
+                else setUpstream(h?.upstream?.reachable ? 'live' : 'mock');
+            } catch { setUpstream('static'); }
             await loadDoctors({});
         })();
         requestLocation();

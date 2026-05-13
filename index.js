@@ -68,7 +68,21 @@ app.post('/api/notify', async (req, res, next) => {
 });
 
 // ── Static frontend ────────────────────────────────────────────────────────
-app.use(express.static(__dirname));
+// Since everything sits at root (flat layout for AWS Amplify), we have to
+// explicitly block server-side source files and secrets from being served.
+const PRIVATE = new Set([
+    '.env', '.env.example', '.gitignore', '.git',
+    'package.json', 'package-lock.json', 'node_modules', 'README.md', 'CNAME',
+    'index.js', 'appointmentClient.js', 'mailer.js', 'mockData.js',
+]);
+app.use((req, res, next) => {
+    const first = req.path.replace(/^\//, '').split('/')[0];
+    if (PRIVATE.has(first)) return res.status(404).send('Not found');
+    next();
+});
+
+app.use(express.static(__dirname, { dotfiles: 'deny', index: false }));
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });

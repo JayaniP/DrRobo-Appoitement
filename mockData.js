@@ -198,6 +198,11 @@ const DOCTORS = [
 ];
 
 // Simple in-memory bookings store (resets when server restarts).
-const bookings = new Map();
+const bookings = (typeof Map !== 'undefined') ? new Map() : null;
 
-window.DOCTORS = DOCTORS;
+// Isomorphic export — works as a Node module AND a browser script tag.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { DOCTORS, bookings };
+} else if (typeof window !== 'undefined') {
+    window.DOCTORS = DOCTORS;
+}
