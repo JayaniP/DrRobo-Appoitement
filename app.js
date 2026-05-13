@@ -110,7 +110,7 @@ function clientFilterDoctors(list, { specialty, day } = {}) {
     });
 }
 
-function buildJoinUrlsClientSide(doctor, room, slot) {
+function buildJoinUrlsClientSide(doctor, room, slot, patientName) {
     const qs = (role) => new URLSearchParams({
         role, room: String(room),
         doctor: doctor.name || 'Telehealth Doctor',
@@ -119,6 +119,7 @@ function buildJoinUrlsClientSide(doctor, room, slot) {
         avatarBg: doctor.avatarBg || '',
         avatarColor: doctor.avatarColor || '',
         slot: slot || '',
+        patient: patientName || 'Patient',
     }).toString();
     return {
         hostURL: 'demo-room.html?' + qs('host'),
@@ -132,13 +133,13 @@ function clientFakeBooking(payload) {
     const list = STATIC_DOCTORS || [];
     const doctor = list.find(d => d.id === payload.physicianId) || { id: payload.physicianId, name: 'Telehealth Doctor', specialty: 'Telehealth' };
     const room = 'MC-' + Date.now().toString().slice(-6);
-    const joinUrls = buildJoinUrlsClientSide(doctor, room, payload.slot);
+    const joinUrls = buildJoinUrlsClientSide(doctor, room, payload.slot, payload.patientName);
     return {
         ok: true,
         source: 'static',
         data: {
             appointmentId: room, room,
-            doctor: { name: doctor.name, email: doctor.hostEmail || 'ajpsinventor@gmail.com' },
+            doctor: { name: doctor.name, email: doctor.hostEmail || 'more.jayesh7777@gmail.com' },
             patient: {
                 name: payload.patientName || 'Patient',
                 phone: payload.patientPhone || '',
@@ -149,7 +150,7 @@ function clientFakeBooking(payload) {
             emailStatus: {
                 mode: 'static',
                 patient: { sent: false, simulated: true, email: payload.patientEmail || 'jayanipatel23@gmail.com' },
-                doctor: { sent: false, simulated: true, email: doctor.hostEmail || 'ajpsinventor@gmail.com' },
+                doctor: { sent: false, simulated: true, email: doctor.hostEmail || 'more.jayesh7777@gmail.com' },
             },
             note: 'Live URL is hosted as static files — bookings are simulated client-side. Run `npm start` locally to actually send emails and call aiRender.',
             backend: 'static-only',
@@ -480,7 +481,7 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
 
         const data = (res && res.data) || {};
         const appointmentId = data.appointmentId || data.room || ('MC-' + Date.now().toString().slice(-6));
-        const joinUrls = data.joinUrls || data.urls || buildJoinUrlsClientSide(doctor, appointmentId, slot);
+        const joinUrls = data.joinUrls || data.urls || buildJoinUrlsClientSide(doctor, appointmentId, slot, name || 'Patient');
         const patient = data.patient || { name: name || 'Patient', phone: phone || '—', email: email || 'jayanipatel23@gmail.com' };
 
         const booked = {
@@ -489,7 +490,7 @@ function BookingModal({ booking, onCancel, onConfirmed }) {
             urls: data.urls || {},
             joinUrls,
             users: data.users || {},
-            doctor: { ...doctor, email: data.doctor?.email || doctor.hostEmail || 'ajpsinventor@gmail.com' },
+            doctor: { ...doctor, email: data.doctor?.email || doctor.hostEmail || 'more.jayesh7777@gmail.com' },
             slot,
             date,
             reason,

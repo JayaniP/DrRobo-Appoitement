@@ -21,7 +21,7 @@ const DOCTORS = [
     hospital: 'Apollo Hospitals, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0461, lng: 72.5546,
     avatarBg: '#e8f0fe', avatarColor: '#1557b0',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd2', name: 'Dr. Suresh Kumar', initials: 'SK',
@@ -33,7 +33,7 @@ const DOCTORS = [
     hospital: 'Sterling Hospitals, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0395, lng: 72.5066,
     avatarBg: '#fce8e6', avatarColor: '#c5221f',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd4', name: 'Dr. Rajiv Patel', initials: 'RP',
@@ -45,7 +45,7 @@ const DOCTORS = [
     hospital: 'CIMS Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0496, lng: 72.5188,
     avatarBg: '#fef7e0', avatarColor: '#b06000',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd6', name: 'Dr. Arjun Shah', initials: 'AS',
@@ -57,7 +57,7 @@ const DOCTORS = [
     hospital: 'Zydus Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0732, lng: 72.5300,
     avatarBg: '#e1f5ee', avatarColor: '#085041',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd7', name: 'Dr. Kavita Desai', initials: 'KD',
@@ -69,7 +69,7 @@ const DOCTORS = [
     hospital: 'Shalby Hospitals, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0260, lng: 72.5147,
     avatarBg: '#fce8e6', avatarColor: '#a8001a',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
 
   // ── Available TOMORROW (daysAhead: 1) ─────────────────────────────────────
@@ -83,7 +83,7 @@ const DOCTORS = [
     hospital: 'SAL Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0335, lng: 72.5260,
     avatarBg: '#e6f4ea', avatarColor: '#137333',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd8', name: 'Dr. Nilesh Trivedi', initials: 'NT',
@@ -95,7 +95,7 @@ const DOCTORS = [
     hospital: 'Narayana Multispeciality, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0410, lng: 72.4960,
     avatarBg: '#fef7e0', avatarColor: '#7a3f00',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd11', name: 'Dr. Ramesh Acharya', initials: 'RA',
@@ -107,7 +107,7 @@ const DOCTORS = [
     hospital: 'Rajasthan Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0260, lng: 72.5793,
     avatarBg: '#f3e8fd', avatarColor: '#5b21b6',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd14', name: 'Dr. Pooja Khanna', initials: 'PK',
@@ -119,7 +119,7 @@ const DOCTORS = [
     hospital: 'KD Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0540, lng: 72.5060,
     avatarBg: '#e8f0fe', avatarColor: '#0b5394',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
 
   // ── Available THIS WEEK (daysAhead: 2–5) ──────────────────────────────────
@@ -133,7 +133,7 @@ const DOCTORS = [
     hospital: 'HCG Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0241, lng: 72.5562,
     avatarBg: '#f3e8fd', avatarColor: '#7b1fa2',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd9', name: 'Dr. Sneha Iyer', initials: 'SI',
@@ -145,7 +145,7 @@ const DOCTORS = [
     hospital: 'Marengo CIMS Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0501, lng: 72.5185,
     avatarBg: '#fce8e6', avatarColor: '#a73c5d',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd10', name: 'Dr. Vikram Bhatt', initials: 'VB',
@@ -157,7 +157,7 @@ const DOCTORS = [
     hospital: 'C.H. Nagri Eye Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0322, lng: 72.5701,
     avatarBg: '#e6f4ea', avatarColor: '#0b6e3a',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd12', name: 'Dr. Anita Nair', initials: 'AN',
@@ -169,7 +169,7 @@ const DOCTORS = [
     hospital: 'Manek Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0270, lng: 72.5660,
     avatarBg: '#fef7e0', avatarColor: '#866600',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd13', name: 'Dr. Sanjay Verma', initials: 'SV',
@@ -181,7 +181,7 @@ const DOCTORS = [
     hospital: 'Wockhardt Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0150, lng: 72.5060,
     avatarBg: '#e8f0fe', avatarColor: '#1a3a8a',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
   {
     id: 'd15', name: 'Dr. Vishal Gandhi', initials: 'VG',
@@ -193,7 +193,7 @@ const DOCTORS = [
     hospital: 'Civil Hospital, Ahmedabad', location: 'Ahmedabad',
     lat: 23.0561, lng: 72.5993,
     avatarBg: '#f3e8fd', avatarColor: '#6a1b9a',
-    hostEmail: 'ajpsinventor@gmail.com',
+    hostEmail: 'more.jayesh7777@gmail.com',
   },
 ];
 

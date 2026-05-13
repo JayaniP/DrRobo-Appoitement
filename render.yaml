@@ -40,7 +40,7 @@ services:
         sync: false
 
       - key: DEMO_DOCTOR_EMAIL
-        value: ajpsinventor@gmail.com
+        value: more.jayesh7777@gmail.com
       - key: DEMO_PATIENT_EMAIL
         value: jayanipatel23@gmail.com
       - key: TELEHEALTH_API_BASE_URL

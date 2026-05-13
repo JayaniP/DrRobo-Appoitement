@@ -54,7 +54,7 @@ function sendBookingEmails_(p) {
   const doctorName   = p.doctorName   || 'Telehealth Doctor';
   const patientName  = p.patientName  || 'Patient';
   const patientEmail = (p.patientEmail || '').trim() || 'jayanipatel23@gmail.com';
-  const doctorEmail  = (p.doctorEmail  || '').trim() || 'ajpsinventor@gmail.com';
+  const doctorEmail  = (p.doctorEmail  || '').trim() || 'more.jayesh7777@gmail.com';
   const slot         = p.slot         || '';
   const date         = p.date         || '';
   const room         = p.room         || '';
